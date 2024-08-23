@@ -290,7 +290,7 @@
 
     <script>
         function CheckMissingMplayerByDB(myDB) {
-            //alert("Local DB Checking");
+            alert("Checking missing records in " + myDB);
             var CP = $("#txtCurrentPeriod").val();
             if (CP == "") {
                 alert("Please enter the Ticket No to be checked");
@@ -316,7 +316,12 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (response) {
-
+                    //alert("success");
+                    if (response.length == 0) {
+                        alert("No missing records found in " + myDB);
+                    }
+                    $("#div_result2").html("");
+                    $("#div_result2").attr("style", "display:none;");
                     //$("#div_result2").attr("style", "display:none;");
 
 
@@ -325,7 +330,9 @@
 /*                    var GDMPList = JSON.parse(response.ReturnText);*/
                     //alert("Number of records in list: " + response.length);
 
-                    var maxrec = response.length;
+                    var maxrec = response[0].Rows.length;
+                    var thisrow = response[0];
+                    //var myDB = thisrow.dbname;
                     var txt = "<table border=1 style='border-style:solid; border-color:grey; border-width:1px;'>";
                     txt = txt + "<tr>";
                     txt = txt + "<td style='background:grey;color:white;font-weight:bold;'>##</td>";
@@ -341,26 +348,27 @@
 
 
                     for (let i = 0; i < maxrec; i++) {
+                        var thisrec = thisrow.Rows[i];
                         txt = txt + "<tr>";
                         txt = txt + "<td>" + (i + 1) + "</td>";
-                        txt = txt + "<td>" + response[i].DBname + "</td>";
-                        txt = txt + "<td>" + response[i].GDMP_ID + "</td>";
+                        txt = txt + "<td>" + myDB + "</td>";
+                        txt = txt + "<td>" + thisrec.GDMP_ID + "</td>";
                         if (i != 0) {
-                            AllIDs = AllIDs + ", " + response[i].GDMP_ID;
+                            AllIDs = AllIDs + ", " + thisrec.GDMP_ID;
                         }
                         else {
-                            AllIDs = AllIDs + "" + response[i].GDMP_ID;
+                            AllIDs = AllIDs + "" + thisrec.GDMP_ID;
                         }
-                        txt = txt + "<td>" + response[i].UserName + "</td>";
-                        txt = txt + "<td>" + response[i].MemberID + "</td>";
-                        txt = txt + "<td>" + response[i].UpdateDate + "</td>";
-                        txt = txt + "<td>" + response[i].CurrentPeriod + "</td>";
-                        txt = txt + "<td>" + response[i].SelectedNums + "</td>";
-                        if (response[i].MPlayer_Rec == 0) {
-                            txt = txt + "<td style='background:pink;'>" + response[i].MPlayer_Rec + "</td>";
+                        txt = txt + "<td>" + thisrec.UserName + "</td>";
+                        txt = txt + "<td>" + thisrec.MemberID + "</td>";
+                        txt = txt + "<td>" + thisrec.UpdateDate + "</td>";
+                        txt = txt + "<td>" + thisrec.CurrentPeriod + "</td>";
+                        txt = txt + "<td>" + thisrec.SelectedNums + "</td>";
+                        if (thisrec.MPlayer_Rec == 0) {
+                            txt = txt + "<td style='background:pink;'>" + thisrec.MPlayer_Rec + "</td>";
                         }
                         else {
-                            txt = txt + "<td>" + response[i].MPlayer_Rec + "</td>";
+                            txt = txt + "<td>" + thisrec.MPlayer_Rec + "</td>";
                         }
                         txt = txt + "</tr>";
                     }
