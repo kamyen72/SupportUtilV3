@@ -18,6 +18,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using SupportUtil.Classes;
 using SupportUtilV2.Classes;
+using SupportUtilV3.Classes;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace DupRecRemoval.Controllers
 {
@@ -640,7 +642,34 @@ namespace DupRecRemoval.Controllers
         {
             string CurrentPeriod = model.CurrentPeriod;
             string DBName = model.DBNametoSearch;
+            DBUtil dbu = new DBUtil();
 
+            string gdmpjson = dbu.GetGameDealerMPlayerBaseByDB(DBName, CurrentPeriod);
+            string mpjson = dbu.GetMPlayerMinimumListByDB(DBName, CurrentPeriod);
+
+            List<GameDealerMPlayerBase> gdmplist = new List<GameDealerMPlayerBase>();
+            List<MPlayerMinimum> mplist = new List<MPlayerMinimum>();
+
+            gdmplist = JsonConvert.DeserializeObject<List<GameDealerMPlayerBase>>(gdmpjson);
+            mplist = JsonConvert.DeserializeObject<List<MPlayerMinimum>>(mpjson);
+
+            CheckDiffClass checker = new CheckDiffClass();
+
+            List<GameDealerMPlayerBase> MissingGDMPlist = new List<GameDealerMPlayerBase>();
+
+            List<MissingList> mastermissinglist = new List<MissingList>();
+
+            bool result = checker.CompareGDMP_MP(gdmplist, mplist, ref MissingGDMPlist);
+            if (result)
+            {
+                MissingList mi = new MissingList();
+                mi.dbname = DBName;
+                mi.Rows = MissingGDMPlist;
+                var tttt = MissingGDMPlist.Count;
+                mastermissinglist.Add(mi);
+            }
+
+            /*
             ReturnModel returnModel = new ReturnModel();
 
             DBUtil dbu = new DBUtil();
@@ -674,8 +703,9 @@ namespace DupRecRemoval.Controllers
                     missinglist.Add(gdmp);
                 }
             }
+            */
 
-            string rJason = JsonConvert.SerializeObject(missinglist);
+            string rJason = JsonConvert.SerializeObject(mastermissinglist);
             return Ok(rJason);
         }
 
@@ -728,5 +758,50 @@ namespace DupRecRemoval.Controllers
             string rJason = JsonConvert.SerializeObject(mastermissinglist);
             return Ok(rJason);
         }
+
+        [EnableCors("AllowAll")]
+        [Route("GetRoots")]
+        [HttpPost]
+        public IActionResult GetRoots([FromBody] InputModel model)
+        {
+            DBUtil dbu = new DBUtil();
+
+            MenuRoots menuroots = new MenuRoots();
+            menuroots = dbu.GetMenuRoots();
+
+            ReturnModel rm = new ReturnModel();
+            string rJason = JsonConvert.SerializeObject(menuroots.Roots);
+            return Ok(rJason);
+        }
+
+        [EnableCors("AllowAll")]
+        [Route("Test3")]
+        [HttpPost]
+        public IActionResult Test3([FromBody] InputModel model)
+        {
+            ReturnModel rm = new ReturnModel();
+            rm.ReturnText = "what";
+
+            string rJason = JsonConvert.SerializeObject(rm);
+            return Ok(rJason);
+        }
+
+        [EnableCors("AllowAll")]
+        [Route("GetRootItems")]
+        [HttpPost]
+        public IActionResult GetRootItems([FromBody] InputModel model)
+        {
+            DBUtil dbu = new DBUtil();
+
+            var myRootID = model.InputText;
+
+            RootItems rootItems = new RootItems();
+            rootItems = dbu.GetMenuRootItems(myRootID);
+
+            ReturnModel rm = new ReturnModel();
+            string rJason = JsonConvert.SerializeObject(rootItems.Rows);
+            return Ok(rJason);
+        }
+
     }
 }

@@ -1,6 +1,7 @@
 ﻿using DupRecRemoval.Classes;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
+using SupportUtilV3.Classes;
 using System.Data;
 using System.Net;
 
@@ -55,8 +56,6 @@ namespace SupportUtil.Classes
             SqlDataAdapter adapter = new SqlDataAdapter(command);
             adapter.Fill(myDataRows);
             connection.Close();
-
-
 
             int maxrows = myDataRows.Rows.Count;
             for (int j = 0; j < maxrows; j++)
@@ -873,5 +872,78 @@ namespace SupportUtil.Classes
             }
         }
 
+        public MenuRoots GetMenuRoots()
+        {
+            string sql = "select text, squence, menurootid from MenuRoot order by squence";
+
+            SqlConnection connection = new SqlConnection(db_local_support.connStr);
+            connection.Open();
+            DataTable myDataRows = new DataTable();
+            SqlCommand command = new SqlCommand(sql, connection);
+            command.CommandTimeout = 300; // 5 minutes (60 seconds X 5)
+            SqlDataAdapter adapter = new SqlDataAdapter(command);
+            adapter.Fill(myDataRows);
+            connection.Close();
+
+            MenuRoots myRoots = new MenuRoots();
+            myRoots.init();
+
+            int mx = myDataRows.Rows.Count;
+            for (int i = 0; i < mx; i++) {
+                DataRow drow = myDataRows.Rows[i];
+
+                RootItem rio = new RootItem();
+                rio.text = drow["text"].ToString();
+                rio.squence = int.Parse( drow["squence"].ToString() );
+                rio.menurootid = int.Parse(drow["menurootid"].ToString());
+
+                myRoots.Roots.Add(rio);
+            }
+
+            return myRoots;
+        }
+
+        public RootItems GetMenuRootItems(string myRootID)
+        {
+            string sql = "";
+            sql = sql + "select * from ( ";
+            sql = sql + "select Text, squence, MenuGroupID as myID, isgroup = 1 from menugroup where menurootid = @dbMenuRootID ";
+            sql = sql + "union ";
+            sql = sql + "select Text, squence, MenuItemID as myID, isgroup = 0 from menuitem where menurootid = @dbMenuRootID ";
+            sql = sql + ") x order by squence ";
+
+            string sql2 = sql.Replace("@dbMenuRootID", myRootID);
+            SqlConnection connection = new SqlConnection(db_local_support.connStr);
+            connection.Open();
+            DataTable myDataRows = new DataTable();
+            SqlCommand command = new SqlCommand(sql2, connection);
+            command.CommandTimeout = 300; // 5 minutes (60 seconds X 5)
+            SqlDataAdapter adapter = new SqlDataAdapter(command);
+            adapter.Fill(myDataRows);
+            connection.Close();
+
+            RootItems rootItems = new RootItems();
+            rootItems.init();
+
+            int mx = myDataRows.Rows.Count;
+
+            for (int i = 0; i < mx; i++)
+            {
+                DataRow row = myDataRows.Rows[i];
+
+                RootItem ri = new RootItem();
+
+                ri.text = row["text"].ToString();
+                ri.squence = int.Parse(row["squence"].ToString());
+                ri.isgroup = int.Parse(row["isgroup"].ToString());
+                ri.myid = int.Parse(row["myid"].ToString());
+
+                rootItems.Rows.Add(ri);
+            }
+
+            return rootItems;
+        }
     }
+
+    
 }
