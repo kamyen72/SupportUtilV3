@@ -787,19 +787,17 @@ namespace DupRecRemoval.Controllers
         }
 
         [EnableCors("AllowAll")]
-        [Route("GetRootItems")]
+        [Route("GetMenuV2")]
         [HttpPost]
-        public IActionResult GetRootItems([FromBody] InputModel model)
+        public IActionResult GetMenuV2([FromBody] InputModel model)
         {
             DBUtil dbu = new DBUtil();
 
-            var myRootID = model.InputText;
-
-            RootItems rootItems = new RootItems();
-            rootItems = dbu.GetMenuRootItems(myRootID);
+            var txt = dbu.GetMenuRootButtons();
 
             ReturnModel rm = new ReturnModel();
-            string rJason = JsonConvert.SerializeObject(rootItems.Rows);
+            rm.ReturnText = txt;
+            string rJason = JsonConvert.SerializeObject(rm);
             return Ok(rJason);
         }
 

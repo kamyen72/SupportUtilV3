@@ -468,7 +468,7 @@ namespace SupportUtil.Classes
                     m.IsWinStop = bool.Parse(r["IsWinStop"].ToString());
                     m.ManualBet = r["ManualBet"].ToString();
                     m.Multiple = r["Multiple"].ToString();
-                    m.RebatePro = int.Parse(r["RebatePro"].ToString());
+                    m.RebatePro = decimal.Parse(r["RebatePro"].ToString());
                     m.RebateProMoney = int.Parse(r["RebateProMoney"].ToString());
                     m.ReferralPayType = int.Parse(r["ReferralPayType"].ToString());
                     m.CashRebatePayType = int.Parse(r["CashRebatePayType"].ToString());
@@ -759,7 +759,7 @@ namespace SupportUtil.Classes
                 sql = sql + "insert into #tempGDMPlayer (dbname, GDMP_ID, MemberID, SelectedNums, UpdateDate, CurrentPeriod) ";
                 sql = sql + "select '@dbName', ID, MemberID, SelectedNums, UpdateDate, CurrentPeriod ";
                 sql = sql + "from GameDealerMPlayer ";
-                sql = sql + "where CurrentPeriod = @CurrentPeriod and MemberID <> 0 and MemberID is not null ";
+                sql = sql + "where CurrentPeriod = @CurrentPeriod and MemberID <> 0 and MemberID is not null and isWin is null";
                 sql = sql + "Update #tempGDMPlayer ";
                 sql = sql + "set UserName = (select top 1 UserName from Mplayer where GamedealerMemberID = a.MemberID) ";
                 sql = sql + "from #tempGDMPlayer a ";
@@ -815,7 +815,7 @@ namespace SupportUtil.Classes
                 sql = sql + ") ";
                 sql = sql + "insert into #tempMplayer (DBname, CurrentPeriod, UpdateDate, UserName, GameDealerMemberID, SelectedNums) ";
                 sql = sql + "select distinct '@dbName', CurrentPeriod, UpdateDate, UserName, GameDealerMemberID, SelectedNums ";
-                sql = sql + "from Mplayer where CurrentPeriod = '@dbCurrentPeriod' ";
+                sql = sql + "from Mplayer where CurrentPeriod = '@dbCurrentPeriod' and iswin is null ";
                 sql = sql + "select * from #tempMplayer ";
 
                 string sql2 = sql.Replace("@dbCurrentPeriod", CurrentPeriod)
@@ -903,8 +903,50 @@ namespace SupportUtil.Classes
             return myRoots;
         }
 
-        public RootItems GetMenuRootItems(string myRootID)
+
+
+        
+
+        //----------------------------------------------------------------------------------------------------------------
+        public string GetMenuRootButtons()
         {
+            string sql = "select text, squence, menurootid from MenuRoot order by squence";
+
+            SqlConnection connection = new SqlConnection(db_local_support.connStr);
+            connection.Open();
+            DataTable myDataRows = new DataTable();
+            SqlCommand command = new SqlCommand(sql, connection);
+            command.CommandTimeout = 300; // 5 minutes (60 seconds X 5)
+            SqlDataAdapter adapter = new SqlDataAdapter(command);
+            adapter.Fill(myDataRows);
+            connection.Close();
+
+            MenuRoots myRoots = new MenuRoots();
+            myRoots.init();
+
+            int mx = myDataRows.Rows.Count;
+            string output = "";
+            int leftposition = 0;
+            for (int i = 0; i < mx; i++)
+            {
+                DataRow drow = myDataRows.Rows[i];
+
+                output = output + "<button onmouseover='showdiv(\"div-" + drow["menurootid"].ToString() + "\")'  style='border-radius:15px;width:250px;height:80px;background:lightblue;font-size:16px;' ";
+                output = output + "data-MenuRootID='" + drow["menurootid"].ToString() + "'>" + drow["text"].ToString() ;
+                output = output + "</button>";
+                output = output + "<label style='opacity:0;width:5px;'></label>";
+                DBUtil dbu2 = new DBUtil();
+                output = output + dbu2.GetMenuRootItems(drow["menurootid"].ToString(), leftposition.ToString());
+
+                leftposition = leftposition + 255;
+            }
+
+            return output;
+        }
+
+        public string GetMenuRootItems(string myRootID, string position)
+        {
+            string output = "";
             string sql = "";
             sql = sql + "select * from ( ";
             sql = sql + "select Text, squence, MenuGroupID as myID, isgroup = 1 from menugroup where menurootid = @dbMenuRootID ";
@@ -926,22 +968,94 @@ namespace SupportUtil.Classes
             rootItems.init();
 
             int mx = myDataRows.Rows.Count;
+            output = output + "<div onmouseout='hidediv(\"div-" + myRootID.ToString() + "\")' id='div-" + myRootID + "' style='width:250px;opacity:1;background:blue;position:absolute;top:95px;height:auto;left:" + position + "px;padding:5px 5px 5px 5px;'>";
+
+            List<string> GroupIDs = new List<string>();
+
+            int toppos = 0;
+
+            int npos = int.Parse(position);
+            npos = npos + 800;
 
             for (int i = 0; i < mx; i++)
             {
                 DataRow row = myDataRows.Rows[i];
 
-                RootItem ri = new RootItem();
+                output = output + "<button onmouseover='showdiv(\"div-" + myRootID.ToString() + "\")' ";
+                output = output + "data-isGroup='" + row["isgroup"].ToString() + "' ";
+                output = output + "data-MyID='" + row["myid"].ToString() + "' style='width:240px;height:80px;border-radius:10px;'>";
+                output = output + row["text"].ToString();
+                if (row["isgroup"].ToString() == "1")
+                {
+                    output = output + " <b>>></b>"; // need to create next level div
+                }
+                output = output + "</button>";
+                //output = output + GetMenuItemsByGroupID(row["myid"].ToString(), toppos.ToString(), position);
+                GroupIDs.Add(row["myid"].ToString());
 
-                ri.text = row["text"].ToString();
-                ri.squence = int.Parse(row["squence"].ToString());
-                ri.isgroup = int.Parse(row["isgroup"].ToString());
-                ri.myid = int.Parse(row["myid"].ToString());
-
-                rootItems.Rows.Add(ri);
+                toppos = toppos + 80;
             }
+            output = output + "</div>";
 
-            return rootItems;
+            int maxy = GroupIDs.Count;
+            toppos = 0;
+            for (int x = 0; x < maxy; x++)
+            {
+                output = output + GetMenuItemsByGroupID(GroupIDs[x] , toppos.ToString(), npos.ToString());
+                toppos = toppos + 80;
+            }
+            return output;
+        }
+
+        public string GetMenuItemsByGroupID(string myGroupID, string topposition, string leftposition)
+        {
+            string output = "";
+            string sql = "";
+            sql = sql + "select Text, squence, MenuItemID as myID, isgroup = 0 from menuitem where parentid = @dbMenuRootID ";
+            sql = sql + "order by squence ";
+
+            string sql2 = sql.Replace("@dbMenuRootID", myGroupID);
+            SqlConnection connection = new SqlConnection(db_local_support.connStr);
+            connection.Open();
+            DataTable myDataRows = new DataTable();
+            SqlCommand command = new SqlCommand(sql2, connection);
+            command.CommandTimeout = 300; // 5 minutes (60 seconds X 5)
+            SqlDataAdapter adapter = new SqlDataAdapter(command);
+            adapter.Fill(myDataRows);
+            connection.Close();
+
+            RootItems rootItems = new RootItems();
+            rootItems.init();
+
+            int mx = myDataRows.Rows.Count;
+            output = output + "<div id='gdiv-" + myGroupID + "' style='width:250px;opacity:1;background:red;position:absolute;height:80px;top:" + topposition + "px; left: " + leftposition + "px;padding:5px 5px 5px 5px;'>";
+
+
+            int toppos = int.Parse(topposition);
+
+            for (int i = 0; i < mx; i++)
+            {
+                DataRow row = myDataRows.Rows[i];
+                var buttcolor = "cyan";
+                if (i > 0)
+                {
+                    buttcolor = "pink";
+                }
+                string thisbutton = "";
+                thisbutton = thisbutton + "<button ";
+                thisbutton = thisbutton + "data-isGroup='" + row["isgroup"].ToString() + "' ";
+                thisbutton = thisbutton + "data-MyID='" + row["myid"].ToString() + "' style='width:240px;height:80px;border-radius:10px;background:" + buttcolor + ";'>";
+                thisbutton = thisbutton + row["text"].ToString() + "[" + row["myid"].ToString() + "]";
+                if (row["isgroup"].ToString() == "1")
+                {
+                    thisbutton = thisbutton + " <b>>></b>"; // need to create next level div
+                }
+                thisbutton = thisbutton + "</button>";
+                output = output + thisbutton;
+                toppos = toppos + 80;
+            }
+            output = output + "</div>";
+            return output;
         }
     }
 

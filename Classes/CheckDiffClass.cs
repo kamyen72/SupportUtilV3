@@ -29,9 +29,9 @@ namespace DupRecRemoval.Classes
             sql = sql + "insert into #tempcompare (CurrentPeriod, SelectedNums, UserName, GameDealerMemberID, MPlayer_Recs, GDMPlayer_Recs) ";
             sql = sql + "select CurrentPeriod, SelectedNums, UserName, GameDealerMemberID, count(*) as Recs ";
             sql = sql + ", (select count(*)  ";
-            sql = sql + "from GameDealerMPlayer where CurrentPeriod = a.CurrentPeriod and SelectedNums = a.SelectedNums and MemberID = a.GameDealerMemberID) ";
+            sql = sql + "from GameDealerMPlayer where CurrentPeriod = a.CurrentPeriod and SelectedNums = a.SelectedNums and MemberID = a.GameDealerMemberID and iswin is null) ";
             sql = sql + "from Mplayer a ";
-            sql = sql + "where CurrentPeriod = @CurrentPeriod ";
+            sql = sql + "where CurrentPeriod = @CurrentPeriod and iswin is null ";
             sql = sql + "group by CurrentPeriod, SelectedNums, UserName, GameDealerMemberID ";
             sql = sql + "order by count(*) desc ";
             sql = sql + "update #tempcompare set diff = MPlayer_Recs - GDMPlayer_Recs ";
