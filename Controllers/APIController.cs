@@ -787,9 +787,9 @@ namespace DupRecRemoval.Controllers
         }
 
         [EnableCors("AllowAll")]
-        [Route("GetMenuV2")]
+        [Route("GetMenuV3")]
         [HttpPost]
-        public IActionResult GetMenuV2([FromBody] InputModel model)
+        public IActionResult GetMenuV3([FromBody] InputModel model)
         {
             DBUtil dbu = new DBUtil();
 
